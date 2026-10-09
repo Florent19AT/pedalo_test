@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fiche de préparation – Générateur de prompt (prototype)</title>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f6f1ea;--card:#fffdfa;--ink:#1c2b36;--mut:#566774;--line:#e0d6c8;--hl:#fff1c9;--hlb:#e3a72f;--acc:#1f5f7a;--accT:#fff;--slate:#1d3a33;--chalk:#f1f5ee;--mark:#f2c230;--warn:#9a5b00}
+@media(prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#1b1815;--card:#242019;--ink:#e6edf1;--mut:#b3a99a;--line:#3d362c;--hl:#3a3012;--hlb:#d9a62e;--acc:#6bb7d4;--accT:#0f1a20;--slate:#0f1f1b}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 "Atkinson Hyperlegible",system-ui,Arial,sans-serif}
+header{padding:28px 20px 8px;max-width:1280px;margin:auto}
+h1{margin:0;font-size:1.7rem}
+header p{margin:6px 0 0;color:var(--mut);max-width:70ch}
+main{max-width:1280px;margin:auto;padding:12px 20px 40px;display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:22px;align-items:start}
+@media(max-width:900px){main{grid-template-columns:1fr}}
+fieldset{background:var(--card);border:1px solid var(--line);border-radius:10px;margin:0 0 14px;padding:14px 16px 16px}
+legend{font-weight:700;padding:0 6px;font-size:1.05rem}
+fieldset{--c:var(--acc);border-left:5px solid var(--c);background:color-mix(in srgb,var(--c) 7%,var(--card))}
+fieldset:nth-of-type(1){--c:#d98f5c}fieldset:nth-of-type(2){--c:#7fa889}fieldset:nth-of-type(3){--c:#d9a93f}fieldset:nth-of-type(4){--c:#6fa0b5}fieldset:nth-of-type(5){--c:#b9809a}fieldset:nth-of-type(6){--c:#8d86c0}
+h1::after{content:"";display:block;width:56px;height:4px;border-radius:2px;background:var(--mark);margin-top:8px}
+.fmtbox{background:var(--hl);border:2px solid var(--hlb);border-radius:10px;padding:10px 14px 14px;margin-top:16px}
+.fmtbox label{margin-top:0}.fmtbox select{border-color:var(--hlb);background:var(--card)}
+label{display:block;margin:10px 0 3px;font-weight:700;font-size:.93rem}
+.hint{font-weight:400;color:var(--mut)}
+input[type=text],input[type=number],select,textarea{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);font:inherit}
+textarea{min-height:68px;resize:vertical}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:560px){.row{grid-template-columns:1fr}}
+.opts{display:flex;flex-wrap:wrap;gap:6px 18px;margin-top:6px}
+.opts label{font-weight:400;margin:0;display:flex;gap:7px;align-items:center}
+.sub{margin:6px 0 0 24px}
+.sub input,.sub select{margin-top:4px}
+.hid{display:none}
+:focus-visible{outline:3px solid var(--mark);outline-offset:2px}
+aside{position:sticky;top:12px}
+@media(max-width:900px){aside{position:static}}
+.board{background:var(--slate);color:var(--chalk);border-radius:12px;border:6px solid #8a6b45;padding:16px}
+.bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:10px}
+.bar select{width:auto;background:#fff1;color:var(--chalk);border-color:#fff4}
+.bar select option{color:#111}
+button{font:inherit;font-weight:700;border-radius:6px;padding:8px 14px;border:1px solid var(--acc);background:var(--acc);color:var(--accT);cursor:pointer}
+button.alt{background:transparent;color:inherit;border-color:currentColor}
+.board button.alt{color:var(--chalk)}
+button.go{background:var(--mark);border-color:var(--mark);color:#222;font-size:1.05rem;padding:10px 18px}
+#out{white-space:pre-wrap;margin:0;font:inherit;font-size:.93rem;line-height:1.55;max-height:62vh;overflow:auto}
+.meta{font-size:.85rem;opacity:.85;margin-top:8px}
+#warn{color:var(--mark)}
+.profile{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:12px;color:var(--mut);font-size:.9rem}
+.profile button{padding:5px 10px;color:var(--ink)}
+.priv{font-size:.85rem;color:var(--warn);margin:8px 0 0}
+main{grid-template-columns:minmax(0,1fr)!important;max-width:980px}aside{position:static}
+.sheet{background:var(--card);border:2px solid var(--ink);border-radius:4px;box-shadow:6px 6px 0 var(--line);margin-bottom:22px;overflow:hidden}
+.sheethead{background:var(--ink);color:var(--card);padding:12px 16px;display:flex;flex-wrap:wrap;gap:4px 16px;align-items:baseline}
+.sheethead span{font-size:.9rem;opacity:.85}
+.blk{border-top:2px solid var(--ink);--c:var(--acc)}
+.blk h3{margin:0;padding:6px 14px;font-size:.9rem;letter-spacing:.05em;text-transform:uppercase;background:color-mix(in srgb,var(--c) 24%,var(--card));border-left:6px solid var(--c)}
+.cells{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr))}
+.cell{padding:6px 14px 12px;border-right:1px solid var(--line);border-bottom:1px solid var(--line)}
+.cell.w{grid-column:1/-1}
+.cell>label:first-child{margin-top:4px}
+.fmtbox{margin:0;border-radius:0;border-left:0;border-right:0;border-bottom:0;border-top:2px solid var(--ink)}
+.pal{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0;align-items:center}
+.chip{background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:999px;padding:5px 12px;font-weight:400}
+.chip:hover{border-color:var(--acc)}
+.pal select{width:auto;max-width:100%}
+.rows{list-style:none;margin:8px 0;padding:0}
+.rows li{display:grid;grid-template-columns:2rem 1fr 7.5rem auto;gap:8px;align-items:center;padding:6px 8px;border:1px solid var(--line);border-radius:6px;margin-bottom:6px;background:var(--card)}
+.rows li.ia{border-style:dashed}
+.rows .n{font-weight:700;color:var(--acc)}
+.rows .ctl{display:flex;gap:4px}
+.rows button{padding:3px 8px;background:transparent;color:var(--ink);border-color:var(--line);font-weight:400}
+@media(max-width:560px){.rows li{grid-template-columns:2rem 1fr}.rows li input,.rows li .ctl{grid-column:2}}
+:root{--red:#c0392b}@media(prefers-color-scheme:dark){:root:not([data-theme=light]){--red:#ff8f85}}
+.chip.rec{border:2px solid var(--red);color:var(--red);font-weight:700}
+.ap{overflow-x:auto}
+.cart,.dtab{width:100%;border-collapse:collapse;font-size:.88rem;background:var(--card)}
+.cart{margin-bottom:10px}
+.cart th,.cart td,.dtab th,.dtab td{border:1px solid var(--ink);padding:5px 8px;vertical-align:top;text-align:left}
+.cart th{background:color-mix(in srgb,var(--ink) 8%,var(--card));width:15%}
+.cart th.tt,.dtab thead th{background:color-mix(in srgb,#8d86c0 25%,var(--card))}
+.cart th.tt{text-align:center;font-size:1rem}
+.ph{color:var(--mut);font-style:italic}
+.dtab td input{width:100%;min-width:3.6rem}
+.dtab .ctl{white-space:nowrap}
+.dtab tr.ia td:first-child{border-left:4px dashed var(--acc)}
+.dtab button{padding:2px 7px;background:transparent;color:var(--ink);border-color:var(--line);font-weight:400}
+details.tool{background:var(--card);border:1px solid var(--line);border-left:5px solid #8d86c0;border-radius:8px;padding:12px 16px;margin-bottom:22px}
+details.tool summary{font-weight:700;cursor:pointer}
+.dtab tr.vd td{height:2rem}
+</style>
+</head>
+<body>
+<header>
+<h1>Scénariser une séance</h1>
+<p>Remplissez ce que vous savez : le prompt se construit en dessous de la fiche. Le contexte du système éducatif français et les attitudes pédagogiques sont déjà intégrés.</p>
+</header>
+<main>
+<form id="f" class="sheet" onsubmit="return false" autocomplete="off">
+<div class="sheethead"><strong>FICHE DE PRÉPARATION DE SÉANCE</strong><span>À compléter pour générer votre prompt (ce n'est pas la séance finale).</span></div>
+
+<section class="blk" style="--c:#d98f5c"><h3>Contexte</h3><div class="cells">
+<div class="cell"><label for="struct">Structure</label><select id="struct"><option value="">— choisir —</option><option>École maternelle</option><option>École élémentaire</option><option>Collège</option><option>SEGPA</option><option>EREA</option><option>Lycée général et technologique</option><option>Lycée professionnel</option><option>Autre</option></select>
+<div class="opts"><label><input type="checkbox" id="rep"> REP</label><label><input type="checkbox" id="repp"> REP+</label></div></div>
+<div class="cell"><label for="disc">Discipline</label><input type="text" id="disc" placeholder="ex. Histoire-géographie, polyvalence…"></div>
+<div class="cell"><label for="niv">Niveau / cycle précis</label><input type="text" id="niv" placeholder="ex. 5e, cycle 3, CAP 1re année"></div>
+<div class="cell"><label for="eff">Nombre d'élèves</label><input type="number" id="eff" min="1" max="40"></div>
+<div class="cell"><label for="collab">Séance collaborative ?</label>
+<select id="collab"><option value="">— choisir —</option><option value="Non">Non, je suis seul·e</option><option>Co-intervention</option><option>Interdisciplinaire</option><option>Autre</option></select>
+<div id="collabBox" class="hid"><label for="collabWho">Professeur·e·s de…</label><input type="text" id="collabWho" placeholder="disciplines des collègues"></div></div>
+<div class="cell"><label>Autres adultes présents <span class="hint">(aucune case = aucun)</span></label>
+<div class="opts"><label><input type="checkbox" id="a_at"> ATSEM</label><label><input type="checkbox" id="a_ai"> AESH</label><label><input type="checkbox" id="a_au"> autre adulte</label></div>
+<div class="sub hid" id="b_aau"><input type="text" id="t_aau" placeholder="précisez"></div></div>
+<div class="cell w"><div class="profile"><span>Mon profil :</span><button type="button" class="alt" id="psave">Enregistrer</button><button type="button" class="alt" id="pclear">Effacer</button><span id="pmsg"></span></div></div>
+</div></section>
+
+<section class="blk" style="--c:#d9a93f"><h3>Séance</h3><div class="cells">
+<div class="cell w"><label for="theme">Thème de la séance</label><input type="text" id="theme"></div>
+<div class="cell"><label for="duree">Durée</label><input type="text" id="duree" placeholder="ex. 55 min, 2 h"></div>
+<div class="cell"><label for="cren">Créneau et contexte <span class="hint">(facultatif)</span></label><input type="text" id="cren" placeholder="ex. vendredi 16 h, veille de vacances"></div>
+<div class="cell"><label for="lieu">Lieu</label><input type="text" id="lieu" placeholder="salle de cours, CDI, salle info, atelier…"></div>
+<div class="cell"><label for="seq">Place dans la séquence</label><input type="text" id="seq" placeholder="ex. séance 2 sur 5"></div>
+</div></section>
+
+<section class="blk" style="--c:#7fa889"><h3>Objectifs d'apprentissage</h3><div class="cells"><div class="cell w"><textarea id="obj" aria-label="Objectifs d'apprentissage"></textarea></div></div></section>
+
+<section class="blk" style="--c:#6fa0b5"><h3>Moyens disponibles</h3><div class="cells"><div class="cell w">
+<div class="opts">
+<label><input type="checkbox" id="m_pc"> ordinateurs pour les élèves</label>
+<label><input type="checkbox" id="m_vp"> vidéoprojecteur</label>
+<label><input type="checkbox" id="m_en"> enceintes</label>
+<label><input type="checkbox" id="m_net"> accès Internet</label>
+<label><input type="checkbox" id="m_doc"> documents imprimés (manuels, fictions, documentaires, guides…)</label>
+</div>
+<div id="pcBox" class="sub hid"><label for="pcmode" class="hint">Répartition des ordinateurs</label>
+<select id="pcmode"><option value="">— choisir —</option><option>un poste par élève</option><option>un poste pour deux élèves</option><option>quelques postes seulement</option></select></div>
+<div class="opts" style="display:block">
+<label><input type="checkbox" id="m_out"> outils</label><div class="sub hid" id="b_out"><input type="text" id="t_out" placeholder="précisez"></div>
+<label><input type="checkbox" id="m_mat"> matériel</label><div class="sub hid" id="b_mat"><input type="text" id="t_mat" placeholder="précisez"></div>
+<label><input type="checkbox" id="m_aut"> autres</label><div class="sub hid" id="b_aut"><input type="text" id="t_aut" placeholder="précisez"></div>
+</div></div></div></section>
+
+<section class="blk" style="--c:#b9809a"><h3>Démarche</h3><div class="cells"><div class="cell w">
+<div class="opts">
+<label><input type="radio" name="how" value="desc"> Descendant + exercices</label>
+<label><input type="radio" name="how" value="act"> Pédagogies actives</label>
+<label><input type="radio" name="how" value="mix"> Mixtes</label>
+<label><input type="radio" name="how" value="ia"> Laisser l'IA choisir</label>
+</div>
+<div class="opts" style="margin-top:10px"><label><input type="checkbox" id="h_grp"> Travail en binôme ou en groupe obligatoire <span class="hint">(sinon, l'IA décide selon l'approche choisie)</span></label></div>
+<div class="opts" style="margin-top:6px"><label><input type="checkbox" id="h_doc"> Je souhaite que l'IA s'appuie sur mes documents joints <span class="hint">(à joindre dans l'IA elle-même, pas ici)</span></label></div>
+<div class="sub hid" id="b_doc"><input type="text" id="t_doc" placeholder="précisions facultatives (ex. ma leçon en PDF, manuel p. 45)"></div>
+<label for="part">Particularités de la classe ou souhaits <span class="hint">(facultatif – jamais de noms d'élèves)</span></label>
+<textarea id="part"></textarea>
+</div></div></section>
+
+<div class="fmtbox"><label for="fmt">Format de la réponse de l'IA</label>
+<select id="fmt"><option value="">— choisir —</option><option value="detail">Exemple détaillé d'une séance complète</option><option value="trame">Ma trame personnalisée (je compose mon déroulé, l'IA propose des idées par étape)</option><option value="vide">Je remplis le tableau moi-même (gabarit rempli, déroulé vierge)</option></select>
+<label for="rend" style="margin-top:12px">Rendu de la fiche</label>
+<select id="rend"><option value="">— choisir —</option><option value="md">Tableau Markdown (à copier depuis l'affichage de l'IA)</option><option value="html">Page HTML (à enregistrer en .html puis ouvrir dans Word : vrai tableau)</option><option value="latex">Page LaTeX (fiche + cours + exercices dans un même document, avec schémas)</option><option value="docx">Fichier Word .docx (si votre IA sait créer des fichiers)</option></select>
+<div class="opts" style="margin-top:10px"><label><input type="checkbox" id="h_tex"> Documents élèves en LaTeX (sciences, mathématiques…) <span class="hint">(inutile avec « Page LaTeX »)</span></label></div></div>
+
+<section class="blk hid" id="derBlk" style="--c:#8d86c0"><h3>Aperçu de la fiche attendue</h3><div class="cells"><div class="cell w">
+<p class="hint" id="apHint" style="margin:8px 0"></p>
+<div id="palWrap" class="hid">
+<div class="pal" id="pal"></div>
+<div class="pal"><button type="button" class="chip" id="addIA">+ Activité(s) : laisser l'IA proposer</button><select id="cat" aria-label="Activité précise"></select></div>
+<p class="hint" style="margin:0 0 8px"><strong style="color:var(--red)">En rouge</strong> : étapes <strong>fortement conseillées</strong> (accueil, bilan de fin de séance). Elles restent facultatives : vous gardez votre liberté pédagogique.</p>
+</div>
+<div class="ap"><table class="cart" id="cart"></table>
+<table class="dtab"><colgroup><col style="width:18%"><col style="width:12%"><col style="width:12%"><col style="width:24%"><col style="width:24%"><col style="width:10%"></colgroup>
+<thead><tr><th>Phase</th><th>Durée et organisation</th><th>Matériel</th><th>Déroulement + consignes</th><th>Activité des élèves et différenciation</th><th></th></tr></thead>
+<tbody id="rows"></tbody><tfoot id="foot"></tfoot></table></div>
+<p id="tot" class="hint"></p>
+</div></div></section>
+</form>
+
+<aside>
+<div class="board">
+<div class="bar">
+<button type="button" class="alt" id="copy">Copier</button>
+<button type="button" class="alt" id="txt">Export .txt</button>
+</div>
+<pre id="out" aria-live="polite"></pre>
+<div class="meta"><span id="cnt"></span> <span id="warn"></span></div>
+</div>
+</aside>
+<details class="tool"><summary>J'ai reçu du code de l'IA : le transformer en fichier à télécharger</summary>
+<p class="hint" style="margin:8px 0">Si votre IA a donné du code au lieu d'un fichier : copiez-le (avec le bouton « copier » du bloc de code), collez-le ici, puis téléchargez. Plus besoin du Bloc-notes. Rien n'est envoyé : tout reste dans votre navigateur.</p>
+<label for="ktype">Type de code</label><select id="ktype"><option value="html">Page HTML (à ouvrir dans Word)</option><option value="tex">Document LaTeX (à compiler, ex. Overleaf)</option></select>
+<label for="code">Code collé</label><textarea id="code" style="min-height:130px;font-family:Consolas,monospace;font-size:.85rem"></textarea>
+<div style="margin-top:10px"><button type="button" id="dl">Télécharger le fichier</button> <span id="dlmsg" class="hint"></span></div>
+</details>
+</main>
+
+<script>
+const $=i=>document.getElementById(i),v=i=>$(i).value.trim(),ck=i=>$(i).checked;
+const STRUCT={
+"École maternelle":"cycle 1 (3 à 5 ans) : attention courte, regroupements brefs, manipulation, jeu, langage oral, rituels. À cet âge, le travail seul en îlot est trop difficile : privilégie le petit groupe encadré ou le binôme, et organise des ateliers différenciés, les uns autonomes (tâches connues, manipulation), les autres dirigés et accompagnés par l'enseignant puis, s'il y en a un, par l'ATSEM, avec rotation",
+"École élémentaire":"cycles 2 et 3 : polyvalence, alternance de temps courts, rythme de l'enfant, entrée dans les écrits ; alterne travail individuel, binômes et petits groupes, et pense aux ateliers autonomes et dirigés au cycle 2",
+"Collège":"collège : grande hétérogénéité des profils et des rythmes, besoin de cadre et de variété",
+"SEGPA":"SEGPA : élèves en difficulté scolaire grave et durable, effectifs réduits (environ 16) ; besoin de concret, de tâches courtes, de réussites rapides, d'étayage de la lecture et de l'écriture",
+"EREA":"EREA : élèves à besoins éducatifs particuliers, souvent avec internat ; accompagnement renforcé, projets concrets, fatigue et rythme à prendre en compte",
+"Lycée général et technologique":"lycée général et technologique : autonomie attendue, exigences de programme, préparation aux évaluations et à l'orientation",
+"Lycée professionnel":"lycée professionnel : élèves parfois en rapport distant à l'école générale ; ancrer dans le métier et les gestes professionnels, contextualiser, articuler atelier et enseignement général",
+"Autre":"contexte spécifique précisé par l'enseignant"};
+const HOW={
+desc:"Approche descendante suivie d'exercices : apport structuré par l'enseignant, puis entraînement progressif, avec vérification et correction.",
+act:"Pédagogies actives : l'élève est en activité, l'enseignant tutore.",
+mix:"Approche mixte : alterner temps d'apport structuré et temps d'activité des élèves.",
+ia:"Choisis toi-même l'approche la plus pertinente selon le contexte, et justifie-la en une phrase."};
+const ACTIVE="Dans une configuration de classe flexible ou en pédagogie active, prévois les documents de cadrage et de suivi nécessaires (fiche de route, consignes, grille d'auto-évaluation…). Le rôle de l'enseignant est de contrôler, tuteurer, accompagner, vérifier, corriger et remédier : réserve des plages explicites pour cela, sans réduire la place majeure de l'activité des élèves.";
+
+function profil(){
+ const t=(v('niv')+" "+v('struct')).toLowerCase(),R=x=>new RegExp(x).test(t);
+ if(R("maternelle|\\b(ps|ms|gs)\\b|cycle ?1\\b"))return "Élèves très jeunes (cycle 1) : prévois des activités nombreuses, très courtes et variées, avec des changements de modalité fréquents.";
+ if(R("\\b(cp|ce1|ce2)\\b|cycle ?2\\b"))return "Cycle 2 : le temps d'attention des élèves est réduit ; prévois davantage d'activités, courtes et variées, avec une alternance fréquente des modalités (oral, manipulation, écrit, mouvement).";
+ if(R("\\bcap\\b"))return "CAP : rythme similaire à la 4e et à la 3e : des activités variées, de durée un peu plus longue qu'en 6e et 5e, avec une autonomie plus grande.";
+ if(R("seconde|2nde|\\b2de\\b|première|premiere|\\b1(re|ère)|terminale|\\btle\\b|bac|bts|lycée|lycee"))return "Lycée et BTS (même rythme) : la pratique reste très pertinente, mais l'approche descendante est moins rédhibitoire à certains moments et l'autonomie des élèves est plus grande ; des temps d'activité plus longs et moins nombreux conviennent.";
+ if(R("\\b[65]\\s?(e|è|ème|eme)(?![a-zà-ÿ])|sixième|sixieme|cinquième|cinquieme"))return "6e et 5e : ces élèves ont encore besoin de nombreuses activités et de variété, un peu moins qu'au cycle 2 mais davantage qu'en 4e et 3e.";
+ if(R("\\b[43]\\s?(e|è|ème|eme)(?![a-zà-ÿ])|quatrième|quatrieme|troisième|troisieme|cycle ?4"))return "4e et 3e : des activités variées, de durée un peu plus longue qu'en 6e et 5e, avec une autonomie plus grande.";
+ if(R("\\b(cm1|cm2)\\b|cycle ?3\\b"))return "Cycle 3 : de nombreuses activités, de durée un peu plus longue qu'au cycle 2, avec alternance des modalités.";
+ return "Adapte le nombre d'activités à l'âge des élèves, de façon progressive : plus nombreuses et plus courtes au cycle 2, un peu moins en 6e et 5e, moins encore en 4e et 3e, puis moins nombreuses et plus longues au lycée et en BTS, où l'autonomie est plus grande ; le CAP suit le rythme de la 4e et de la 3e.";
+}
+function build(){
+ const full=true,L=[],miss=[];let fiI0=0,fiI1=0;
+ const g=(id,lab)=>{const x=v(id);if(!x){miss.push(lab);return "[à préciser]"}return x};
+ const s=v('struct'),n=parseInt(v('eff'))||0,hc=document.querySelector('input[name=how]:checked'),how=hc?hc.value:"";
+ const p=t=>L.push(t);
+ p("Tu es un·e conseiller·ère pédagogique expert·e du système éducatif français. Aide-moi à scénariser une séance. Réponds en français, avec un ton bienveillant, concret et sans jargon inutile.");
+ p("");
+ p("CONTEXTE");
+ if(!s)miss.push("structure");
+ let ctx="Structure : "+(s||"[à préciser]");
+ if(ck('rep'))ctx+=" – éducation prioritaire REP";
+ if(ck('repp'))ctx+=" – éducation prioritaire REP+";
+ p(ctx+".");
+ if(full&&s)p("Points d'attention : "+STRUCT[s]+".");
+ if(full&&(ck('rep')||ck('repp')))p("En éducation prioritaire, des fragilités possibles (langage, confiance scolaire, ressources hors de l'école) : privilégie l'explicitation, l'étayage et le travail réalisé en classe plutôt qu'à la maison. Évite tout stéréotype sur les élèves.");
+ p("Discipline : "+g('disc','discipline')+" | Niveau/cycle : "+g('niv','niveau'));
+ if(!n)miss.push("effectif");
+ let e="Effectif : "+(n||"[à préciser]")+" élèves";
+ if(n){
+  if(n<=15)e+=" (effectif réduit : favorise suivi individuel et oral).";
+  else if(n<=24)e+=" (effectif moyen : au-delà de 15 élèves la gestion se complexifie ; prévois routines et groupes de 3 à 4).";
+  else e+=" (effectif élevé : attention et motivation plus difficiles à maintenir).";
+ }
+ p(e);
+ if(full&&n>15)p("Propose des idées pour favoriser l'attention et la motivation, et prévois des modalités de gestion de classe, de mise au travail et de maintien de l'attention.");
+ const co=v('collab');
+ if(!co)miss.push("séance collaborative");
+ p(!co?"Séance collaborative : [à préciser].":co==="Non"?"Séance menée par un·e seul·e enseignant·e.":"Séance collaborative ("+co+") avec des professeur·e·s de : "+(v('collabWho')||"[à préciser]")+". Répartis clairement les rôles de chaque enseignant·e dans le déroulé.");
+ const at=ck('a_at'),ai=ck('a_ai'),au=ck('a_au'),ro=[];
+ if(at)ro.push("ATSEM : peut prendre en charge un atelier ou un petit groupe, la logistique et l'accompagnement des élèves ; intègre-la au déroulé et à la rotation des ateliers.");
+ if(ai)ro.push("AESH : se consacre entièrement à l'élève qu'il ou elle accompagne ; ne peut ni prendre en charge les tâches annexes de la classe, ni un groupe à une table, sauf si son élève en fait partie et reste toujours avec lui ou elle. Ne lui attribue aucun rôle collectif ; prévois que l'élève accompagné et son AESH restent ensemble dans chaque activité, avec la place et le matériel adaptés.");
+ if(au)ro.push("Autre adulte : "+(v('t_aau')||"non précisé")+" ; précise son rôle de manière réaliste.");
+ p(ro.length?"Autres adultes présents :\n- "+ro.join("\n- "):"Aucun autre adulte que l'enseignant·e : prévois des temps ou ateliers autonomes réalisables sans adulte, adaptés à l'autonomie réelle des élèves selon leur âge.");
+ p("");
+ p("SÉANCE");
+ p("Thème : "+g('theme','thème'));
+ p("Objectif(s) d'apprentissage : "+g('obj','objectifs'));
+ p("Durée : "+g('duree','durée')+(v('cren')?" | Créneau : "+v('cren'):""));
+ p("Lieu : "+g('lieu','lieu'));
+ if(v('seq'))p("Place dans la séquence : "+v('seq'));
+ p("");
+ p("MATÉRIEL");
+ const yes=[],no=[];
+ const add=(id,lab)=>(ck(id)?yes:no).push(lab);
+ add('m_vp',"vidéoprojecteur");add('m_en',"enceintes");add('m_net',"accès Internet");add('m_doc',"documents imprimés");
+ if(ck('m_pc'))yes.push("ordinateurs pour les élèves"+(v('pcmode')?" ("+v('pcmode')+")":""));else no.push("ordinateurs pour les élèves");
+ [['m_out','t_out','outils'],['m_mat','t_mat','matériel'],['m_aut','t_aut','autres']].forEach(([c,t,l])=>{if(ck(c))yes.push(l+" : "+(v(t)||"non précisé"))});
+ p("Disponible : "+(yes.join(", ")||"rien de particulier")+".");
+ p("N'indique jamais que les élèves s'installent aux ordinateurs à leur entrée en classe ni pendant l'accueil : la mise aux postes n'a lieu que si l'enseignant·e choisit une activité sur ordinateur."+(ck('m_pc')?(v('fmt')==="trame"?" Les postes informatiques sont disponibles : tu peux en tenir compte dans tes idées (en proposer ou non, ce n'est pas une obligation).":" Les postes informatiques sont disponibles : utilise-les seulement si une activité le justifie."):""));
+ if(no.length)p("NON disponible : "+no.join(", ")+". Ne propose rien qui en dépende (par exemple aucune vidéo sans vidéoprojecteur, aucun son sans enceintes).");
+ const fixe=/labo|atelier/i.test(v('lieu'));
+ p(fixe?"Le mobilier est probablement fixe (laboratoire ou atelier) : adapte l'organisation spatiale.":"Pars du principe que les tables sont déplaçables (U, rectangle, ovale, îlots, autobus) : propose l'agencement le plus adapté.");
+ p("");
+ const lieu=v('lieu'),cdi=/\bcdi\b/i.test(lieu),info=/salle info|informatique|\binfo\b/i.test(lieu);
+ p("TEMPS ET RYTHME (repères de terrain : déduis ces temps de la durée de la séance avant de planifier)");
+ if(info)p("- Salle informatique : les élèves sont en général directement aux ordinateurs, mais il faut le temps de s'y rendre, de faire l'appel et de se connecter : si une activité utilise les ordinateurs, compter environ 10 minutes pour l'ensemble avant de la démarrer.");
+ else{
+  p("- Accueil des élèves : étape de routine à part entière, à ne pas confondre avec le brise-glace ou l'introduction (qui viennent après) ; compter au minimum 5 minutes (entrée, installation, appel, carnets de correspondance quand il y en a). Rédige-la toujours ainsi, sans rien ajouter ni retirer : "+ACC+".");
+  if(cdi)p("- CDI : les ordinateurs sont en général fixes, sur des tables contre un mur ; les élèves doivent quitter leur place, rejoindre les postes, les allumer et se connecter : si une activité utilise les ordinateurs, compter au minimum 5 minutes supplémentaires.");
+  else if(ck('m_pc'))p("- Ordinateurs : prévoir le temps de déplacement, d'allumage et de connexion (plusieurs minutes) avant de démarrer l'activité.");
+ }
+ p("- Notion nouvelle présentée en format théorique : les élèves ont souvent besoin d'environ 20 minutes en groupe classe en moyenne ; ajuste selon la difficulté de la notion et l'âge des élèves (plus court avec des élèves jeunes).");
+ const nb=Math.ceil(n/2);
+ p("- Travail en binômes ou en groupes : l'enseignant ne peut pas accompagner tous les groupes en continu (en moyenne 2 minutes par binôme, davantage par groupe plus nombreux). Ne dimensionne JAMAIS la durée d'une activité sur le temps de passage de l'enseignant : une activité dure en général au moins 15 à 20 minutes de travail effectif des élèves, largement autonome (à moduler selon l'âge : plus court avec de jeunes élèves). Les 5 à 10 premières minutes servent à la mise en route ; ensuite, selon l'âge et les demandes des élèves, l'enseignant peut se déplacer pour accompagner, en plus de ce temps, mais l'accompagnement peut aussi être autonome (fiches d'aide, auto-vérification, entraide entre pairs). Pendant les passages, les élèves non accompagnés risquent de chahuter, de faire du bruit ou de perturber la classe. Réponds à ce risque par la pédagogie, sans recourir à la sanction : tâches autonomes avec production attendue et auto-vérifiables (fiche de contrôle, corrigé à consulter), rôles précis dans le binôme ou le groupe, entraide entre pairs avant de solliciter l'enseignant, tâche prolongée « si j'ai fini », passages ciblés et planifiés (priorité aux binômes en difficulté), alternance d'ateliers autonomes et dirigés, points d'étape collectifs courts.");
+ p("");
+ p("DÉMARCHE");
+ if(!how)miss.push("approche pédagogique");p(how?HOW[how]:"Approche pédagogique : [à préciser]");
+ p(ck('h_grp')?"Travail en binômes ou en groupes OBLIGATOIRE : l'enseignant·e le souhaite ; intègre-le (production collective) en appliquant les repères ci-dessus sur le temps de passage de l'enseignant et sur les élèves non accompagnés.":"Travail en binômes ou en groupes : non imposé ; décide de son usage selon l'approche pédagogique retenue.");
+ if(["act","mix","ia"].includes(how))p(ACTIVE);
+ p("Rythme : équilibre le nombre d'activités avec le temps réellement disponible et privilégie des activités bien menées plutôt qu'une accumulation. "+profil()+" Prévois pour chacune le temps de consigne, de contrôle, d'explication, de formalisation et d'échange, ainsi que des moments plus flottants (mise en route, transitions, rangement, imprévus). Respecte aussi le rythme de l'enseignant : la séance ne doit pas devenir un marathon de propositions.");
+ p("Cohérence et réalisme : toute activité proposée doit être réalisable dans le cadre scolaire français (durée, espace, adultes présents, matériel réellement disponible) et cohérente dans son ensemble. Ne propose rien qui exige un matériel non listé, un appel en visioconférence, un contact avec des personnes extérieures, l'usage des téléphones personnels ou d'Internet à la maison, une sortie ou des données personnelles d'élèves. Un document élève ne doit jamais contredire le tableau (une activité notée « sans ordinateur » n'envoie pas les élèves aux ordinateurs). Avant de répondre, relis l'ensemble de ta réponse (tableau, documents, matériel, durées, modalités) et corrige toute incohérence.");
+ p("Élève acteur : place l'élève au cœur de chaque activité ; il agit, s'exprime, manipule et se projette (vécu, ressenti, choix, production), il n'est jamais seulement spectateur. Adapte les activités à l'âge et aux capacités réelles des élèves (autonomie, durée d'attention, lecture et écriture).");
+ if(!/maternelle|\\b(ps|ms|gs)\\b|cycle ?1\\b/.test((v('niv')+" "+v('struct')).toLowerCase()))p("Projection de l'élève (fil rouge obligatoire) : chaque activité proposée comporte un moment où l'élève se projette personnellement (lien avec son vécu, son ressenti, sa vie quotidienne, ses choix ou son projet, mise en situation), afin qu'il se sente concerné dans son travail. Ce n'est jamais une activité à part mais une dimension de chacune : vérifie-le pour chaque activité avant de répondre, et adapte la formulation à l'âge des élèves.");
+ p("Ouverture culturelle : quand tu donnes des exemples (personnes, lieux, histoires, traditions, œuvres), puise dans plusieurs cultures et plusieurs continents (Afrique, Amériques, Asie, Océanie, Europe), sans stéréotypes ni exotisme, et ne te limite pas aux références occidentales.");
+ p("Inclusion : la classe est hétérogène et tout élève peut avoir des besoins spécifiques. Conçois des activités accessibles à tous, de manière inclusive. Ne fournis pas immédiatement de versions de soutien ni d'approfondissement : à la fin de ta réponse, propose-moi de les générer, au choix, pour les activités que je retiendrai.");
+ p("Mémorisation : appuie-toi sur les processus favorisant la mémoire à long terme."+(v('fmt')==="trame"?"":" Fournis un court test de récupération à utiliser en début de séance suivante ; il sera remis aux élèves à la fin de cette séance pour que ceux qui le souhaitent puissent s'entraîner chez eux. Rédige-le en entier, prêt à être copié-collé puis imprimé : d'abord la feuille élève (titre, nom et date à compléter, questions, espace de réponse), puis, séparé, le corrigé pour l'enseignant."));
+ p("");
+ if(ck('h_doc')){
+  p("DOCUMENTS DE L'ENSEIGNANT");
+  p("Je joins mes propres documents et sources"+(v('t_doc')?" ("+v('t_doc')+")":"")+". Avant toute proposition, ouvre et lis chaque fichier joint (extrais son contenu), analyse-le, puis appuie-toi dessus pour générer les contenus. Indique pour chaque activité sur quel document elle repose. Ne contredis pas ces documents et n'invente pas de contenu qui n'y figure pas : si un point n'y est pas, dis-le et signale ce que tu ajoutes. Si un fichier est illisible ou absent, dis-le clairement avant de continuer. Reprends des extraits plutôt que de reproduire intégralement un document, et n'y inclus aucune donnée personnelle d'élèves.");
+  p("");
+ }
+ p("FORMAT DE RÉPONSE");
+ p("Présente la séance étape par étape, dans l'ordre chronologique. Pour chaque étape, précise l'activité (consigne, rôle de l'enseignant, rôle des élèves, durée) et explicite les liens avec l'étape précédente, la suivante et les objectifs.");
+ p("Intègre directement dans l'étape concernée, et nulle part ailleurs : (1) les variantes éventuelles, pour que je puisse me projeter immédiatement à ce moment de la séance ; (2) les conseils de gestion de classe, d'attention, d'inclusion ou de mémorisation et tout rappel théorique utile, en une ou deux phrases. Ne crée aucune rubrique finale de variantes, de conseils ou de théorie.");
+ const fm=v('fmt'),nTr=rows.length;
+ if(!fm){miss.push("format de réponse");p("Format de la réponse : [à préciser]")}
+ else if(fm==="detail")p("Quand tu proposes une activité destinée aux élèves, rédige le document complet (voir la fiche de sortie ci-dessous), prêt à être copié-collé puis imprimé : consignes, énoncés, supports et grilles complets.");
+ else if(fm==="trame"){
+  const tr=rows.map(r=>{const d=mins(r.d)?" (durée imposée : "+mins(r.d)+" min)":"";return r.k==='step'?r.l+d:(r.t?"Activité précise : "+r.t+d:"Activité(s) au choix de l'IA : propose un menu de types d'activités adaptés, chacun suivi de « Pertinent car… »"+d)});
+  if(!tr.length)miss.push("étapes du déroulé");
+  p("Format trame personnalisée : j'ai composé moi-même ma trame, car je connais ma classe et ma manière d'enseigner. Voici les étapes retenues, dans cet ordre :\n"+(tr.length?tr.map((t,i)=>(i+1)+". "+t).join("\n"):"[à préciser]"));
+  p("Ne génère pas de séance détaillée complète. Exception : l'étape Accueil n'a pas d'options, rédige-la telle quelle. Pour chaque autre étape retenue, propose plusieurs idées (deux ou trois options), chacune décrite en une à trois phrases puis suivie de « Pertinent car… » (justification pédagogique), sans rédiger les supports en entier. Pour une « activité précise », reste dans le type demandé : propose deux ou trois façons concrètes de le réaliser pour cette séance ; si le type te paraît manifestement inadapté à l'âge ou à la discipline, signale-le au lieu de le modifier en silence. Décris simplement les options, sans rappeler les principes implicites de ces consignes (projection des élèves comme fil rouge, choix laissé à l'enseignant·e, liberté pédagogique…) : applique-les sans les mentionner.");
+  if(tr.length===1)p("Une seule étape est retenue : décris uniquement cette étape, sans minutage ni conception d'une séance entière.");
+  else if(tr.length>1)p("Ajoute une répartition indicative du minutage sur l'ensemble des étapes retenues : les durées indiquées sont imposées, répartis le temps restant entre les étapes sans durée, en tenant compte des temps incompressibles et des repères de rythme, sans ajouter ni retirer d'étape ; si la trame est trop chargée pour la durée, signale-le et indique laquelle raccourcir, sans en supprimer sans mon accord.");
+  p("Termine en m'invitant à indiquer les options retenues, que tu développeras alors en version complète, prête à copier-coller et imprimer.");
+ }
+ p("Tout document destiné aux élèves doit être prêt à imprimer, sans retouche : un en-tête (titre, nom, prénom, classe, date), des consignes claires, et pour tout exercice de rédaction ou toute réflexion de travail de groupe un espace rectangulaire d'écriture (cadre ou cellule de tableau vide, de taille adaptée, copiable dans un traitement de texte). Utilise un tableau chaque fois que c'est plus pertinent.");
+ {
+  const head=cadrage(false).concat(fm==="vide"?[["Séquence",""],["Compétences travaillées",""],["Organisation",""]]:[["Séquence","[à rédiger : nom de la séquence, déduit du thème]"],["Compétences travaillées","[à rédiger : compétences formulées simplement à partir des objectifs, sans citer de texte officiel ; je les validerai]"],["Organisation","[à rédiger : disposition de la classe et des groupes]"]]);
+  const PR=pairs(head),rend=v('rend');
+  if(!rend)miss.push("rendu de la fiche");
+  const opt={md:"par un saut de ligne <br><br> dans la cellule (à défaut, garde au moins les libellés en gras)",html:"dans son propre paragraphe <p>",docx:"dans son propre paragraphe de la cellule",latex:"dans la cellule, séparée des autres par un \\par (libellé en gras avec \\textbf)"}[rend]||"de façon bien séparée";
+  let dr="Lignes du déroulé (une par phase) : Phase : nom court. Durée et organisation : minutage et modalité (ex. « 10 min – groupes de 2 »). Matériel. Déroulement + consignes : ce que fait l'enseignant·e, avec les consignes et les conseils de gestion de classe de l'étape. Activité des élèves et différenciation : ce que font les élèves, avec de brèves pistes d'inclusion (les versions complètes de soutien et d'approfondissement sont proposées à part, à la fin).";
+  if(fm==="trame")dr+=(rows.length===1?" Le déroulé ne contient que l'étape retenue, sans minutage global.":" Il comporte exactement les étapes de ma trame, dans l'ordre, avec les durées imposées ; répartis le temps restant entre les étapes sans durée ; termine par une ligne « Total » égale à la durée de la séance.")+" Dans la cellule « Déroulement + consignes », chaque option commence par un libellé en gras (« Option 1 », « Option 2 »…) et est séparée des autres "+opt+".";
+  else if(fm==="vide")dr="Déroulé vierge : ne compose aucun contenu. Après la ligne de titres, mets exactement ces lignes : une ligne « Accueil » (seule la cellule Phase est remplie), deux lignes entièrement vides, une ligne « Bilan de fin de séance » (seule la cellule Phase est remplie) ; toutes les autres cellules restent vides. Termine par la ligne « Total » (durée de la séance : "+(v('duree')||"à laisser vide")+") puis la ligne « Bilan de la séance » vide. Laisse aussi vides les rubriques Séquence, Compétences travaillées et Organisation du cadrage.";
+  else dr+=" Compose toi-même toutes les étapes et leur minutage, avec une étape d'accueil et un bilan de fin de séance (étapes fortement conseillées), puis termine par une ligne « Total » égale à la durée de la séance.";
+  fiI0=L.length;
+  p("");
+  p("FICHE DE SORTIE (format obligatoire)");
+  p("Ta réponse est une fiche de préparation de séance : un cadrage (cartouche), puis UN SEUL tableau de déroulé, jamais scindé en plusieurs tableaux.");
+  const cols=["Phase","Durée et organisation","Matériel","Déroulement + consignes","Activité des élèves et différenciation"];
+  if(rend==="md"){
+   const L=PR.map(g=>g.map(([l,x])=>"**"+l+"** : "+x).join(" · "));
+   p("Rendu : Markdown propre, sans HTML, à copier depuis l'affichage. 1) Titre : « ## Fiche de préparation de séance ». 2) Cadrage en simple texte (pas de tableau) : recopie exactement ces lignes, chacune séparée de la suivante par une ligne vide, en remplaçant uniquement les crochets :\n"+L.join("\n")+"\n3) Déroulé : UN SEUL tableau Markdown, avec cette ligne d'en-tête puis cette ligne de séparation :\n| **"+cols.join("** | **")+"** |\n|---|----|---|---------|---------|\nPuis les lignes du déroulé, la ligne « Total » et enfin la ligne | **Bilan de la séance** | | | | | laissée vide. "+dr+" Garde des cellules très concises dans les colonnes fines (Phase, Durée et organisation, Matériel).");
+  }else if(rend==="html"){
+   const H=x=>String(x).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+   const cr=PR.map(g=>g.length===2?'<tr><th>'+H(g[0][0])+'</th><td>'+H(g[0][1])+'</td><th>'+H(g[1][0])+'</th><td>'+H(g[1][1])+'</td></tr>':'<tr><th>'+H(g[0][0])+'</th><td colspan="3">'+H(g[0][1])+'</td></tr>');
+   p("Rendu : UNE page HTML complète et autonome. Livraison : crée directement un fichier téléchargeable « fiche-seance.html » (pas seulement du code) ; si ton interface ne permet pas de créer de fichier, dis-le en une phrase, puis donne le code complet dans UN SEUL bloc de code, sans texte à l'intérieur. Je l'ouvrirai dans Word. Orientation paysage (@page { size: A4 landscape; margin: 1.5cm }), police Arial 10 pt, bordures 1px (border-collapse: collapse), styles simples écrits en ligne. Elle contient DEUX tableaux séparés par un petit espace. Tableau 1, le cartouche (width 100%, <colgroup> 15% | 35% | 15% | 35%) : première ligne <th colspan=\"4\"> centrée « Fiche de préparation de séance », puis ces lignes, à recopier exactement en remplaçant uniquement les crochets :\n"+cr.join("\n")+"\nTableau 2, le déroulé (width 100%, <colgroup> 9% | 11% | 12% | 34% | 34%) : ligne de titres ("+cols.join(" | ")+"), lignes du déroulé, ligne « Total », puis ligne « Bilan de la séance » dont le contenu (<td colspan=\"4\">) reste vide. "+dr);
+  }else if(rend==="docx"){
+   p("Rendu : crée un fichier Word (.docx) téléchargeable, en orientation paysage, avec DEUX tableaux. Tableau 1, le cartouche : 4 colonnes, première ligne fusionnée sur toute la largeur avec le titre « Fiche de préparation de séance », puis les rubriques côte à côte par paires (rubrique | contenu | rubrique | contenu), les contenus longs fusionnés sur 3 colonnes. Lignes à reproduire exactement, en remplaçant uniquement les crochets :\n"+PR.map(g=>g.map(([l,x])=>l+" : "+x).join("  ||  ")).join("\n")+"\nTableau 2, le déroulé : 5 colonnes ("+cols.join(" | ")+"), colonnes « Phase » et « Durée et organisation » plus fines que les colonnes de texte, puis lignes du déroulé, ligne « Total » et ligne « Bilan de la séance » laissée vide. "+dr+" Si tu ne sais pas créer de fichier, dis-le clairement.");
+  }else if(rend==="latex"){
+   const TX=x=>String(x).replace(/[\\&%$#_{}~^]/g,c=>({"\\":"\\textbackslash{}","&":"\\&","%":"\\%","$":"\\$","#":"\\#","_":"\\_","{":"\\{","}":"\\}","~":"\\textasciitilde{}","^":"\\textasciicircum{}"})[c]);
+   const cr=PR.map(g=>g.length===2?"\\textbf{"+TX(g[0][0])+"} & "+TX(g[0][1])+" & \\textbf{"+TX(g[1][0])+"} & "+TX(g[1][1])+" \\\\ \\hline":"\\textbf{"+TX(g[0][0])+"} & \\multicolumn{3}{X|}{"+TX(g[0][1])+"} \\\\ \\hline");
+   p("Rendu : UN SEUL document LaTeX complet, compilable tel quel (pdfLaTeX ou Overleaf). Livraison : crée directement un fichier téléchargeable « fiche-seance.tex » ; si ton interface ne permet pas de créer de fichier, dis-le en une phrase, puis donne le code complet dans UN SEUL bloc de code. Il contient à la fois la fiche (cartouche + déroulé) et, à la suite, les documents de cours et d'application destinés aux élèves. Préambule : classe article A4, paquets courants uniquement (inputenc utf8, fontenc T1, lmodern, babel français, geometry, pdflscape, array, tabularx, longtable, multirow, enumitem, amsmath, amssymb, xcolor, tikz et ses bibliothèques, pgfplots, circuitikz, chemfig, tcolorbox, fancyhdr). La fiche est placée dans un environnement landscape ; les documents élèves sont en portrait, chacun commençant sur une nouvelle page et titré « Document – étape n° X ». Tableau 1, le cartouche : \\begin{tabularx}{\\textwidth}{|p{0.14\\textwidth}|X|p{0.14\\textwidth}|X|} avec, en première ligne, \\multicolumn{4}{|c|}{\\textbf{Fiche de préparation de séance}} \\\\ \\hline, puis ces lignes à recopier exactement (déjà échappées pour LaTeX), en remplaçant uniquement les crochets :\n"+cr.join("\n")+"\nTableau 2, le déroulé : un tableau longtable (en-tête répété sur chaque page) à 5 colonnes de largeurs p{0.09\\textwidth} | p{0.11\\textwidth} | p{0.12\\textwidth} | p{0.33\\textwidth} | p{0.33\\textwidth}, avec les titres ("+cols.join(" | ")+"), puis les lignes du déroulé, la ligne « Total » et la ligne « Bilan de la séance » laissée vide. "+dr);
+  }
+  p(fm==="vide"?"Ne produis aucun document élève ni aucun contenu pédagogique.":fm==="trame"?"Documents élèves : ne les rédige pas maintenant ; je te demanderai de les développer, prêts à imprimer, pour les options que je retiendrai.":"Documents élèves : le tableau reste synthétique ; les documents complets destinés aux élèves sont fournis juste après, un par étape concernée, titrés « Document – étape n° X », et la cellule correspondante y renvoie"+(rend==="html"?" (dans la même page HTML, chacun précédé d'un saut de page)":(rend==="docx"?" (dans le même fichier, chacun précédé d'un saut de page)":(rend==="latex"?" (dans le même document LaTeX, chacun sur une nouvelle page)":"")))+".");
+  if(fm!=="vide"&&(rend==="latex"||ck('h_tex')))p("Schémas et visuels (obligatoires pour les disciplines scientifiques et techniques, et pour les formules, mais aussi dans toute discipline où ils aident à comprendre) : intègre dans le code LaTeX de vrais schémas dessinés, jamais une simple description. Utilise TikZ pour les figures géométriques et les schémas (côtés nommés, angles droits codés, longueurs et angles notés, repères, flèches, légendes), pgfplots pour les courbes et graphiques, circuitikz pour les circuits, chemfig pour la chimie, et des tableaux (variations, signes, valeurs) ou frises et cartes mentales simples selon la discipline. Chaque schéma est lisible, légendé et strictement cohérent avec l'énoncé (mêmes lettres, valeurs et unités), sans image externe. Les formules et propriétés clés sont mises en valeur dans des encadrés (tcolorbox ou \\fbox) avec la notation mathématique complète ; pour les exercices, prévois la figure à compléter ou à annoter quand c'est pertinent. Exemple : pour le théorème de Pythagore, un triangle rectangle ABC dessiné en TikZ avec l'angle droit marqué, les côtés nommés et leurs longueurs, et la formule dans un encadré. Avant de répondre, vérifie que chaque commande utilisée a son paquet et sa bibliothèque TikZ chargés (\\usetikzlibrary{calc,angles,quotes,arrows.meta,patterns}) et que le code compile sans erreur.");
+ if(fm!=="vide"&&ck('h_tex')&&rend!=="latex")p("Documents élèves en LaTeX : quand tu fournis un document élève, donne un code LaTeX complet et compilable tel quel (pdfLaTeX ou Overleaf), dans un bloc de code par document : classe article A4, paquets courants uniquement (inputenc, fontenc T1, babel français, geometry, amsmath, amssymb, array, tabularx, enumitem, xcolor, tikz et ses bibliothèques, pgfplots, circuitikz, chemfig, tcolorbox), sans image externe ; en-tête (titre, nom, prénom, classe, date), consignes, formules en LaTeX, espaces d'écriture rectangulaires (cadres de hauteur fixe). Vérifie que le code compile (accolades, environnements, caractères spéciaux).");
+  fiI1=L.length;
+ }
+ p("Explique brièvement tes choix pédagogiques, dans l'étape concernée.");
+ p("Suggère des types de ressources externes (sans références précises), par exemple : partir d'un extrait de livre ou de vidéo traitant de telle notion. Elles doivent correspondre au matériel disponible.");
+ if(v('part')){p("");p("PARTICULARITÉS : "+v('part'))}
+ p("");
+ p("Règles : n'invente ni ne cite de textes officiels ou de références précises ; si un point dépend des programmes, invite-moi à vérifier. Je garde ma liberté pédagogique : propose, je décide.");
+ if(fm==="vide"){const seg=L.slice(fiI0,fiI1).map(x=>x.replace(/,? ?en remplaçant uniquement les crochets/g,""));L.length=0;L.push("Tu es un·e assistant·e de mise en forme de documents pédagogiques. Je remplis moi-même le déroulé de ma séance : ne compose AUCUN contenu pédagogique (ni activités, ni idées, ni documents élèves). Produis uniquement la fiche de préparation décrite ci-dessous.");seg.forEach(x=>L.push(x));miss.length=0;if(!v('rend'))miss.push("rendu de la fiche")}
+ return{text:L.join("\n"),miss};
+}
+let last="";
+function refresh(){
+ const r=build();last=r.text;$('out').textContent=r.text;
+ $('cnt').textContent=r.text.length+" caractères";
+ $('warn').textContent=r.miss.length?" – à compléter : "+[...new Set(r.miss)].join(", "):"";
+ $('collabBox').classList.toggle('hid',["","Non"].includes(v('collab')));
+ $('pcBox').classList.toggle('hid',!ck('m_pc'));
+ $('derBlk').classList.toggle('hid',!v('fmt'));
+ $('palWrap').classList.toggle('hid',v('fmt')!=='trame');
+ $('apHint').textContent=v('fmt')==='trame'?"Aperçu de votre fiche : chaque étape ajoutée devient une ligne. Les cellules « … » seront remplies par l'IA.":v('fmt')==='vide'?"Aperçu du gabarit : votre cadrage est rempli, le déroulé reste vierge (accueil, deux lignes vides, bilan de fin de séance). Vous le complétez dans Word et pouvez y ajouter des lignes.":"Aperçu de la fiche : l'IA composera elle-même toutes les étapes. Les cellules « … » seront remplies par l'IA.";
+ if(v('fmt')!==window._lf){window._lf=v('fmt');renderRows()}
+ renderCart();updFoot();
+ const tot=rows.reduce((a,r)=>a+(mins(r.d)||0),0),dm=mins(v('duree'));
+ $('tot').textContent=rows.length?"Durées saisies : "+tot+" min"+(dm?" sur "+dm+" min de séance":"")+(dm&&tot>dm?" – dépassement":""):"";
+ [['a_au','b_aau'],['h_doc','b_doc'],['m_out','b_out'],['m_mat','b_mat'],['m_aut','b_aut']].forEach(([c,b])=>$(b).classList.toggle('hid',!ck(c)));
+}
+async function copy(){
+ try{await navigator.clipboard.writeText(last)}catch(e){const r=document.createRange();r.selectNodeContents($('out'));const s=getSelection();s.removeAllRanges();s.addRange(r);document.execCommand('copy')}
+ const w=$('cnt');const o=w.textContent;w.textContent="Copié ✔";setTimeout(()=>w.textContent=o,1600);
+}
+$('f').addEventListener('input',refresh);$('f').addEventListener('change',refresh);
+$('copy').onclick=copy;
+$('txt').onclick=()=>{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([last],{type:'text/plain;charset=utf-8'}));a.download='prompt-seance.txt';a.click();URL.revokeObjectURL(a.href)};
+const PK='profil-seance',PF=['struct','disc','niv'];
+function pmsg(t){$('pmsg').textContent=t;setTimeout(()=>$('pmsg').textContent='',2200)}
+$('psave').onclick=()=>{try{localStorage.setItem(PK,JSON.stringify({...Object.fromEntries(PF.map(i=>[i,v(i)])),rep:ck('rep'),repp:ck('repp')}));pmsg("Profil enregistré")}catch(e){pmsg("Enregistrement impossible")}};
+$('pclear').onclick=()=>{try{localStorage.removeItem(PK)}catch(e){}pmsg("Profil effacé")};
+try{const d=JSON.parse(localStorage.getItem(PK)||'null');if(d){PF.forEach(i=>$(i).value=d[i]||'');$('rep').checked=!!d.rep;$('repp').checked=!!d.repp}}catch(e){}
+const ACC="(1) saluer les élèves ; (2) faire le calme dans le couloir ; (3) faire rentrer les élèves, qui s'installent à leur place selon le plan de classe ; (4) faire l'appel ; (5) les élèves sortent leurs affaires ; (6) présenter la séance du jour";
+const STEPS=[["Accueil","Accueil : étape de routine, à rédiger toujours ainsi, sans rien ajouter ni retirer, et à ne pas confondre avec le brise-glace ou l'introduction : "+ACC],["Brise-glace / introduction / représentations","Brise-glace / introduction / représentations initiales (ex. nuage de mots, photo-langage)"],["Récupération / positionnement","Activité de récupération / de positionnement (ex. quiz sur la séance précédente)"],["Apport théorique","Apport théorique (apports, descendant ou autre)"],["Correction","Étape de correction"],["Formalisation","Étape de formalisation"],["Évaluation formative / test","Évaluation formative, test, auto-évaluation"],["Bilan de fin de séance","Bilan de fin de séance"],["Prise de note / séance prochaine","Temps de prise de note ou d'échange sur la séance prochaine"]];
+const CAT=[["Entraînement et consolidation",["exercice d'application","exercices à trous / texte lacunaire","exercices d'automatisation (flash, rituels, calcul mental, conjugaison)","exercice de transfert (même notion, contexte nouveau)","entraînement progressif (échelle de difficulté, ceintures)"]],
+["Découverte et construction des notions",["situation-problème (le savoir à construire est la solution)","activité de découverte guidée / démarche d'investigation","recherche documentaire / recherche d'information","étude de document(s) (texte, carte, image, graphique, extrait)","analyse comparative (textes, œuvres, documents, méthodes)"]],
+["Résolution et mobilisation",["résolution de problème (ouvert, à étapes, défi, énigme)","étude de cas","tâche complexe","projet / mini-projet","analyse d'erreur (« Léa a fait cette erreur, retrouve-la et corrige »)","problème à contraintes ou à données manquantes/superflues"]],
+["Manipulation, classement, structuration",["cartes à positionner (frise, carte, schéma, classification)","tri et classement (cartes, étiquettes, catégories)","remise en ordre (étapes, phrases, événements)","association / appariement","carte mentale à compléter ou à construire","schéma, légende ou tableau à compléter","mots croisés / jeux de vocabulaire"]],
+["Évaluation et régulation",["quiz (QCM, vrai/faux justifié, questions flash)","bilan de fin de séquence / carte d'identité de la notion"]],
+["Oral, argumentation, coopération",["débat / jeu de rôle / simulation","argumentation écrite (paragraphe argumenté, lettre, discours)","dispositif coopératif (jigsaw, tutorat, exposés croisés)","enquête / interview / exposé"]],
+["Production",["production d'écrit guidée (invention, réécriture, description)","création (affiche, maquette, protocole, podcast, vidéo)","protocole expérimental (conception, test, analyse)","modélisation (mathématique, scientifique, algorithmique)"]],
+["Remédiation et approfondissement",["fiche de révision"]]];
+let rows=[];
+function mins(t){t=(t||"").toLowerCase();const h=t.match(/(\d+)\s*h(?:eures?)?\s*(\d+)?/);if(h)return +h[1]*60+(+h[2]||0);const x=t.match(/(\d+)/);return x?+x[1]:null}
+function mv(i,d){const j=i+d;if(j<0||j>=rows.length)return;[rows[i],rows[j]]=[rows[j],rows[i]];renderRows();refresh()}
+function renderRows(){
+ const tb=$('rows');tb.innerHTML='';const f=v('fmt');
+ const ph=(tr,n)=>{for(let k=0;k<n;k++){const c=tr.insertCell();c.className='ph';c.textContent='…'}};
+ if(f==='trame'){
+  if(!rows.length){const tr=tb.insertRow(),c=tr.insertCell();c.colSpan=6;c.className='ph';c.textContent='Ajoutez des étapes avec les boutons ci-dessus : elles apparaissent ici, une ligne par étape.'}
+  rows.forEach((r,i)=>{
+   const tr=tb.insertRow();if(r.k==='act'&&!r.t)tr.className='ia';
+   const lab=r.k==='step'?r.s:(r.t?'Activité : '+r.t:'Activité(s) au choix de l\u2019IA');
+   tr.insertCell().textContent=(i+1)+'. '+lab;
+   const inp=document.createElement('input');inp.type='text';inp.placeholder='min';inp.value=r.d;inp.setAttribute('aria-label','Durée en minutes : '+lab);inp.oninput=()=>{r.d=inp.value};tr.insertCell().appendChild(inp);
+   ph(tr,3);
+   const c=tr.insertCell();c.className='ctl';
+   const mk=(t,l,fn)=>{const b=document.createElement('button');b.type='button';b.textContent=t;b.title=l;b.setAttribute('aria-label',l);b.onclick=fn;c.appendChild(b)};
+   mk('↑','Monter',()=>mv(i,-1));mk('↓','Descendre',()=>mv(i,1));
+   if(r.k==='act')mk('⧉','Dupliquer',()=>{rows.splice(i+1,0,{...r,d:''});renderRows();refresh()});
+   mk('✕','Supprimer',()=>{rows.splice(i,1);renderRows();refresh()});
+  });
+ }else if(f==='vide'){
+  ['Accueil','','','Bilan de fin de séance'].forEach(t=>{const tr=tb.insertRow();tr.className='vd';tr.insertCell().textContent=t;for(let k=0;k<5;k++)tr.insertCell()});
+ }else if(f==='detail'){
+  for(let k=1;k<=3;k++){const tr=tb.insertRow(),c=tr.insertCell();c.className='ph';c.textContent='Étape '+k+' (composée par l\u2019IA)';ph(tr,4);tr.insertCell()}
+ }
+}
+function updFoot(){
+ const f=$('foot');f.innerHTML='';const one=v('fmt')==='trame'&&rows.length===1;
+ if(!one){const r=f.insertRow(),a=document.createElement('th');a.textContent='Total';r.appendChild(a);const b=r.insertCell();b.textContent=v('duree')||'…';if(!v('duree'))b.className='ph';r.insertCell().colSpan=4}
+ const r2=f.insertRow(),a2=document.createElement('th');a2.textContent='Bilan de la séance';r2.appendChild(a2);const c2=r2.insertCell();c2.colSpan=5;c2.className='ph';c2.textContent='à compléter après la séance';
+}
+const LONG=["Thème","Objectifs d'apprentissage","Moyens disponibles","Particularités de la classe","Sources","Séquence","Compétences travaillées","Organisation"];
+function pairs(list){const o=[];let pe=null;list.forEach(it=>{if(LONG.includes(it[0])){if(pe){o.push([pe]);pe=null}o.push([it])}else if(pe){o.push([pe,it]);pe=null}else pe=it});if(pe)o.push([pe]);return o}
+function moyens(){const y=[];[['m_vp',"vidéoprojecteur"],['m_en',"enceintes"],['m_net',"accès Internet"],['m_doc',"documents imprimés"]].forEach(([i,l])=>{if(ck(i))y.push(l)});if(ck('m_pc'))y.push("ordinateurs pour les élèves"+(v('pcmode')?" ("+v('pcmode')+")":""));[['m_out','t_out','outils'],['m_mat','t_mat','matériel'],['m_aut','t_aut','autres']].forEach(([c,t,l])=>{if(ck(c))y.push(l+" : "+(v(t)||"non précisé"))});return y}
+function cadrage(all){
+ const H=[],A=(l,x,core)=>{if(x||(all&&core))H.push([l,x?String(x).replace(/\s*\n\s*/g," ; "):"…"])};
+ const s=v('struct'),n=parseInt(v('eff'))||0,co=v('collab'),hc=document.querySelector('input[name=how]:checked'),how=hc?hc.value:"";
+ A("Structure",[s,ck('rep')&&"REP",ck('repp')&&"REP+"].filter(Boolean).join(" – "),1);
+ A("Discipline",v('disc'),1);A("Niveau / cycle",v('niv'),1);A("Effectif",n?n+" élèves":"",1);
+ A("Séance collaborative",co?(co==="Non"?"non (enseignant·e seul·e)":co+(v('collabWho')?", avec des professeur·e·s de "+v('collabWho'):"")):"");
+ A("Autres adultes présents",[ck('a_at')&&"ATSEM",ck('a_ai')&&"AESH",ck('a_au')&&(v('t_aau')||"autre adulte")].filter(Boolean).join(", ")||"aucun");
+ A("Thème",v('theme'),1);A("Objectifs d'apprentissage",v('obj'),1);A("Durée",v('duree'),1);A("Créneau et contexte",v('cren'));A("Lieu",v('lieu'),1);A("Place dans la séquence",v('seq'));
+ A("Moyens disponibles",moyens().join(", "),1);
+ A("Approche pédagogique",{desc:"descendant + exercices",act:"pédagogies actives",mix:"mixte",ia:"au choix de l'IA"}[how]||"");
+ A("Travail en binôme ou en groupe",ck('h_grp')?"obligatoire":"");
+ A("Sources",ck('h_doc')?"documents de l'enseignant joints"+(v('t_doc')?" ("+v('t_doc')+")":""):"");
+ A("Particularités de la classe",v('part'));
+ return H;
+}
+function renderCart(){
+ const t=$('cart');t.innerHTML='';
+ const h=document.createElement('th');h.colSpan=4;h.className='tt';h.textContent='Fiche de préparation de séance';t.insertRow().appendChild(h);
+ const mk=(tr,it,cs)=>{const a=document.createElement('th');a.textContent=it[0];tr.appendChild(a);const b=tr.insertCell();b.textContent=it[1];if(it[1]==="…"||it[1].indexOf("(rédigé")===0)b.className='ph';if(cs)b.colSpan=cs};
+ pairs(cadrage(true).concat(v('fmt')==='vide'?[["Séquence",""],["Compétences travaillées",""],["Organisation",""]]:[["Séquence","(rédigé par l\u2019IA)"],["Compétences travaillées","(rédigé par l\u2019IA)"],["Organisation","(rédigé par l\u2019IA)"]])).forEach(g=>{const tr=t.insertRow();mk(tr,g[0],g.length===2?0:3);if(g.length===2)mk(tr,g[1],0)});
+}
+STEPS.forEach(([sh,lg])=>{const b=document.createElement('button');b.type='button';b.className='chip'+(sh==='Accueil'||sh==='Bilan de fin de séance'?' rec':'');b.textContent='+ '+sh;b.onclick=()=>{rows.push({k:'step',s:sh,l:lg,d:''});renderRows();refresh()};$('pal').appendChild(b)});
+$('addIA').onclick=()=>{rows.push({k:'act',t:'',d:''});renderRows();refresh()};
+$('cat').innerHTML='<option value="">+ Activité précise (catalogue)…</option>'+CAT.map(([g,a])=>'<optgroup label="'+g+'">'+a.map(x=>'<option>'+x+'</option>').join('')+'</optgroup>').join('');
+$('cat').onchange=()=>{const t=$('cat').value;if(t){rows.push({k:'act',t,d:''});renderRows();refresh()}$('cat').value=''};
+renderRows();$('fmt').addEventListener('change',renderRows);
+$('dl').onclick=()=>{
+ let t=$('code').value;if(!t.trim()){$('dlmsg').textContent="Collez d'abord le code reçu.";return}
+ t=t.replace(/^\s*```[a-z]*\s*\n/i,'').replace(/\n\s*```\s*$/,'');
+ const k=$('ktype').value,name='fiche-seance.'+k;
+ if(k==='html'&&!/charset/i.test(t))t=/<head[^>]*>/i.test(t)?t.replace(/<head[^>]*>/i,m=>m+'<meta charset="utf-8">'):'<meta charset="utf-8">\n'+t;
+ const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([t],{type:(k==='html'?'text/html':'text/plain')+';charset=utf-8'}));a.download=name;document.body.appendChild(a);a.click();a.remove();
+ $('dlmsg').textContent="Fichier « "+name+" » téléchargé (dossier Téléchargements).";
+};
+refresh();
+</script>
+</body>
+</html>
